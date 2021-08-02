@@ -19,6 +19,7 @@ Currently supported
 - [Qiskit](https://github.com/qiskit/qiskit) -- currently needs to be qiskit<0.25
 - [Cirq](https://github.com/quantumlib/cirq)
 - [PyQuil](https://github.com/rigetti/pyquil)
+- [QLM](https://atos.net/en/solutions/quantum-learning-machine) (works also whith [myQLM](https://myqlm.github.io/index.html))
 
 Tequila detects backends automatically if they are installed on your systems.
 All of them are available over standard pip installation like for example `pip install qulacs`.
@@ -38,6 +39,9 @@ Currently you need to compile from a separate [fork](https://github.com/kottmanj
 See the github page of this fork for installation instruction.
 Here is a small [tutorial](https://github.com/aspuru-guzik-group/tequila-tutorials/blob/main/ChemistryMadnessInterface.ipynb) that illustrates the usage.
 
+- [PySCF](https://github.com/pyscf/pyscf)  
+Works similar as Psi4. Classical methods are also integrated in the madness interface allowing to use them in a basis-set-free representation.
+
 # Install from source
 **Do not** install like this: (Minecraft lovers excluded)
 <strike>`pip install tequila`</strike>
@@ -52,6 +56,10 @@ pip install -e .
 You can install `tequila` directly with pip over:
 ```bash
 pip install git+https://github.com/aspuru-guzik-group/tequila.git
+```
+Install from devel branch (most recent updates):
+```bash
+pip install git+https://github.com/aspuru-guzik-group/tequila.git@devel
 ```
 
 Recommended Python version is 3.7.
@@ -77,6 +85,15 @@ pip install tequila-basic
 # install qulacs and/or other backends and use it within tequila
 pip install qulacs
 ```
+
+# Install with Windows
+```bash
+pip install git+https://github.com/aspuru-guzik-group/tequila.git@windows
+```
+See also the troubleshooting below if you want to tweak things manually.  
+The command above will not install the qulacs simulator.  
+You can install it on windows OS, but you need to have cmake and c++ compilers ready (can be installed for example over visual studio).  
+Of course you can also use one of the other backends (see above).  
 
 # Getting Started
 Check out the tutorial notebooks provided in tutorials.
@@ -157,6 +174,7 @@ J.S. Kottmann, M. Krenn, T.H. Kyaw, S. Alperin-Lea, A. Aspuru-Guzik.
 Quantum Computer-Aided design of Quantum Optics Hardware.  
 [arxiv.org/abs/2006.03075](https://arxiv.org/abs/2006.03075)  
 [example code](https://github.com/kottmanj/Photonic)  
+[slides](https://github.com/kottmanj/Photonic/blob/master/slides.pdf)  
 
 A. Anand, M. Degroote, A. Aspuru-Guzik.  
 Natural Evolutionary Strategies for Variational Quantum Computation.  
@@ -165,8 +183,11 @@ Natural Evolutionary Strategies for Variational Quantum Computation.
 J. S. Kottmann, A. Aspuru-Guzik,  
 Optimized Low-Depth Quantum Circuits for Molecular Electronic Structure using a Separable Pair Approximation,  
 [arxiv.org/abs/2105.03836](https://arxiv.org/abs/2105.03836)  
-[example code](https://github.com/aspuru-guzik-group/tequila-tutorials/blob/main/ChemistrySeparablePairAnsatz.ipynb)    
-currently needs the [devel](https://github.com/aspuru-guzik-group/tequila/tree/devel) branch of tequila  
+[example code](https://github.com/aspuru-guzik-group/tequila-tutorials/blob/main/ChemistrySeparablePairAnsatz.ipynb)   
+ 
+K. Choudhary,  
+Quantum Computation for Predicting Electron and Phonon Properties of Solids  
+[arxiv.org/abs/2102.11452](https://arxiv.org/abs/2102.11452)  
 
 Let us know, if you want your research project and/or tutorial to be included in this list!
 
@@ -207,6 +228,17 @@ If you used `tequila` for your research, feel free to include your algorithms he
 # Troubleshooting
 If you experience trouble of any kind or if you either want to implement a new feature or want us to implement a new feature that you need:
 Don't hesitate to contact us directly or raise an issue here on github.
+
+## PySCF
+If pyscf crashes on import with
+```
+Using default_file_mode other than 'r' is no longer supported. Pass the mode to h5py.File() instead
+```
+then you need to downgrade the h5py version
+```
+pip install --upgrade 'h5py <= 3.1' 
+```
+The issue will probably be fixed soon in pyscf.
 
 ## Qiskit backend
 Qiskit version 0.25 is not yet supported.
