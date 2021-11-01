@@ -48,6 +48,26 @@ def test_base(trafo):
         assert numpy.isclose(eigvals[-1], 7.10921141e-01)
         assert len(eigvals) == 16
 
+@pytest.mark.skipif(condition=not HAS_PSI4 or not HAS_PYSCF, reason="you don't have psi4 or pyscf")
+@pytest.mark.parametrize("trafo", ["JordanWigner","BravyiKitaev","BravyiKitaevTree"])
+def test_prepare_reference(trafo):
+    geometry="Li 0.0 0.0 0.0\nH 0.0 0.0 1.5"
+    basis_set="sto-3g"
+    mol = tq.Molecule(geometry=geometry, basis_set=basis_set, transformation=trafo)
+    H = mol.make_hamiltonian()
+    U = mol.prepare_reference()
+    E = tq.ExpectationValue(H=H, U=U)
+    energy = tq.simulate(E)
+    hf_energy = mol.compute_energy("hf")
+    assert numpy.isclose(energy, hf_energy, atol=1.e-4)
+    mol = tq.Molecule(geometry=geometry, basis_set=basis_set, transformation="reordered"+trafo)
+    H = mol.make_hamiltonian()
+    U = mol.prepare_reference()
+    E = tq.ExpectationValue(H=H, U=U)
+    energy2 = tq.simulate(E)
+    assert numpy.isclose(energy, energy2, atol=1.e-4)
+
+
 
 @pytest.mark.skipif(condition=not HAS_PSI4, reason="you don't have psi4")
 @pytest.mark.parametrize("trafo_args", [{"transformation": "JordanWigner"}, {"transformation": "BravyiKitaev"},
@@ -98,6 +118,14 @@ def test_ucc_psi4(trafo, backend):
     do_test_ucc(qc_interface=qc.QuantumChemistryPsi4, parameters=parameters_qc, result=-1.1368354639104123, trafo=trafo,
                 backend=backend)
 
+@pytest.mark.skipif(condition=not HAS_PSI4, reason="you don't have psi4")
+def test_ucc_singles_psi4():
+    parameters_qc = qc.ParametersQC(geometry="data/h2.xyz", basis_set="6-31G")
+    # default backend is fine
+    # will not converge if singles are not added
+    do_test_ucc(qc_interface=qc.QuantumChemistryPsi4, parameters=parameters_qc, result=-1.15016, trafo="JordanWigner", backend=None)
+
+
 
 def do_test_ucc(qc_interface, parameters, result, trafo, backend="qulacs"):
     # check examples for comments
@@ -110,7 +138,7 @@ def do_test_ucc(qc_interface, parameters, result, trafo, backend="qulacs"):
     H = psi4_interface.make_hamiltonian()
     ex = ExpectationValue(U=U, H=H)
     energy = simulate(ex, variables=variables, backend=backend)
-    assert (numpy.isclose(energy, result))
+    assert (numpy.isclose(energy, result, atol=1.e-3))
 
 
 @pytest.mark.skipif(condition=not HAS_PSI4, reason="you don't have psi4")
@@ -239,6 +267,17 @@ def test_upccgsd(geometry, trafo):
     assert numpy.isclose(fci, energy, atol=1.e-3)
     energy2 = do_test_upccgsd(molecule, label="asd", order=2)
     assert numpy.isclose(fci, energy2, atol=1.e-3)
+
+@pytest.mark.skipif(condition=not HAS_PSI4, reason="psi4 not found")
+def test_upccgsd_singles():
+    molecule = tq.chemistry.Molecule(geometry="H 0.0 0.0 0.0\nH 0.0 0.0 0.7", basis_set="6-31G")
+    H = molecule.make_hamiltonian()
+    energy1 = numpy.linalg.eigvalsh(H.to_matrix())[0]
+    energy2 = do_test_upccgsd(molecule)
+    fci = molecule.compute_energy("fci")
+    assert numpy.isclose(fci, energy1, atol=1.e-3)
+    assert numpy.isclose(fci, energy2, atol=1.e-3)
+
 
 def do_test_upccgsd(molecule, *args, **kwargs):
     U = molecule.make_upccgsd_ansatz(*args, **kwargs)

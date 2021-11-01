@@ -189,6 +189,17 @@ K. Choudhary,
 Quantum Computation for Predicting Electron and Phonon Properties of Solids  
 [arxiv.org/abs/2102.11452](https://arxiv.org/abs/2102.11452)  
 
+
+P. Schleich, J.S. Kottmann, A. Aspuru-Guzik,  
+Improving the Accuracy of the Variational Quantum Eigensolver for Molecular Systems by the Explicitly-Correlated Perturbative [2]-R12-Correction  
+[arxiv.org/abs/2110.06812](https://arxiv.org/abs/2110.06812)  
+[tutorial](https://github.com/aspuru-guzik-group/tequila-tutorials/blob/main/ChemistryF12Correction.ipynb)  
+
+M. Weber, A. Anand, A. Cervera-Lierta, J. S. Kottmann, T.-H. Kyaw, B. Li, A. Aspuru-Guzik, C. Zhang and Z. Zhao,  
+Toward Reliability in the NISQ Era: Robust Interval Guarantee for Quantum Measurements on Approximate States  
+[arxiv.org/abs/2110.09793](https://arxiv.org/abs/2110.09793)  
+[tutorial](https://github.com/aspuru-guzik-group/tequila-tutorials/blob/main/robustness_tutorial.ipynb)  
+
 Let us know, if you want your research project and/or tutorial to be included in this list!
 
 # Dependencies
@@ -239,6 +250,15 @@ then you need to downgrade the h5py version
 pip install --upgrade 'h5py <= 3.1' 
 ```
 The issue will probably be fixed soon in pyscf.
+
+## import errors on openfermion and cirq
+This is fixed on master and devel but not yet on PyPi (v1.5.1)    
+You can avoid it by downgrading cirq and openfermion  
+```bash
+pip install --upgrade "openfermion<=1.0.0"
+pip install --upgrade "cirq<=0.9.1"
+```  
+
 
 ## Qiskit backend
 Qiskit version 0.25 is not yet supported.
