@@ -1,25 +1,23 @@
 from tequila import TequilaException
 from tequila.circuit.circuit import QCircuit
-from tequila.circuit.gates import Rx, Ry, H, X, Rz, ExpPauli, CNOT, Phase, T, Z, Y, S, CX
+from tequila.circuit.gates import Rx, Ry, H, X, Rz, ExpPauli, CNOT, Phase, T, Z
 from tequila.circuit._gates_impl import RotationGateImpl, PhaseGateImpl, QGateImpl, \
     ExponentialPauliGateImpl, TrotterizedGateImpl, PowerGateImpl
 from tequila.utils import to_float
 from tequila.objective.objective import Variable, FixedVariable
-from tequila.objective.objective import Objective, VectorObjective
+from tequila.objective.objective import Objective
 from tequila.objective.objective import ExpectationValueImpl
-from tequila.autograd_imports import numpy as jnp
 import numpy
 from numpy import pi as pi
 
 import copy, typing
-import time
 
 
 class TequilaCompilerException(TequilaException):
     pass
 
 
-class Compiler:
+class CircuitCompiler:
     """
     an object that performs abstract compilation of QCircuits and Objectives.
 
@@ -36,6 +34,43 @@ class Compiler:
     compile_circuit:
         perform compilation on a circuit.
     """
+
+    @classmethod
+    def all_flags_true(cls, *args, **kwargs):
+        # convenience: Initialize with all flags set to true
+        # set exceptions in kwargs
+        c = cls()
+        for k in c.__dict__.keys():
+            try:
+                c.__dict__[k]=True
+            except:
+                pass
+        for k,v in kwargs.items():
+            if k in c.__dict__:
+                c.__dict__[k]=v
+        c.gradient_mode=False
+
+        if not c.multicontrol:
+            c.cc_max = False
+        return c
+
+    @classmethod
+    def standard_gate_set(cls, *args, **kwargs):
+        # convenience: Initialize with all flags set to true
+        # but not for standard gates like ry
+        # set exceptions in kwargs
+        c = cls.all_flags_true()
+        c.gradient_mode=False
+        c.y_gate=False
+        c.ry_gate=False
+
+        for k,v in kwargs.items():
+            if k in c.__dict__:
+                c.__dict__[k]=v
+
+        if not c.multicontrol:
+            c.cc_max = False
+        return c
 
     def __init__(self,
                  multitarget=False,
@@ -190,8 +225,6 @@ class Compiler:
             compiled_sets.append(compiled_args)
         if isinstance(objective,Objective):
             return type(objective)(args=compiled_sets[0],transformation=objective.transformation)
-        if isinstance(objective, VectorObjective):
-            return type(objective)(argsets=compiled_sets, transformations=objective.transformations)
 
 
     def compile_objective_argument(self, arg, *args, **kwargs):
@@ -269,7 +302,7 @@ class Compiler:
                 continue
             else:
                 if hasattr(cg, "compile"):
-                    cg = QCircuit.wrap_gate(cg.compile())
+                    cg = QCircuit.wrap_gate(cg.compile(**self.__dict__))
                     for g in cg.gates:
                         if g.is_controlled():
                             controlled = True
@@ -361,8 +394,6 @@ def compiler(f):
                 outer.append(compiled)
             if isinstance(gate, Objective):
                 return type(gate)(args=outer[0], transformation=gate._transformation)
-            if isinstance(gate, VectorObjective):
-                return type(gate)(argsets=outer, transformations=gate._transformations)
         else:
             return f(gate=gate, **kwargs)
 

@@ -1,7 +1,7 @@
-from tequila import TequilaException, TequilaWarning
+from tequila import TequilaException, TequilaWarning, ExpectationValue, QCircuit, minimize
 from openfermion import MolecularData
 from tequila.quantumchemistry.qc_base import ParametersQC, QuantumChemistryBase, NBodyTensor
-
+from dataclasses import dataclass, field
 import pyscf
 
 import numpy, typing, warnings
@@ -15,12 +15,41 @@ class QuantumChemistryPySCF(QuantumChemistryBase):
     def __init__(self, parameters: ParametersQC,
                  transformation: typing.Union[str, typing.Callable] = None,
                  *args, **kwargs):
+        
+        if "basis_set" in kwargs and kwargs["basis_set"] is not None:
+            
+            # either compute integrals form basis_set or give them
+            # can't do both
+            assert "one_body_integrals" not in kwargs
+            assert "two_body_integrals" not in kwargs
+
+            mol = pyscf.gto.M(atom=parameters.get_geometry_string(), basis=kwargs["basis_set"])
+            mf = pyscf.scf.RHF(mol)
+            mf.kernel()
+            
+            c=mf.mo_coeff
+
+            h = mol.get_hcore()
+            obi = numpy.einsum("ki, kl, lj -> ij" , c ,h, c)
+                            
+            eri = mol.ao2mo(c)
+            eri = pyscf.ao2mo.restore(1, eri, c.shape[0])
+            
+            eri = NBodyTensor(elems=eri, ordering="mulliken")
+            eri = eri.reorder("openfermion").elems
+           
+            kwargs["two_body_integrals"]=eri
+            kwargs["one_body_integrals"]=obi
+            if "nuclear_repulsion" not in kwargs:
+                kwargs["nuclear_repulsion"]=mol.energy_nuc()
 
         super().__init__(parameters=parameters, transformation=transformation, *args, **kwargs)
 
     @classmethod
     def from_tequila(cls, molecule, transformation=None, *args, **kwargs):
         c, h1, h2 = molecule.get_integrals(two_body_ordering="openfermion")
+        if transformation is None:
+            transformation=molecule.transformation
         return cls(nuclear_repulsion=c,
                           one_body_integrals=h1,
                           two_body_integrals=h2,
@@ -125,7 +154,7 @@ class QuantumChemistryPySCF(QuantumChemistryBase):
         mo_occ = numpy.zeros(norb)
         mo_occ[:nelec // 2] = 2
 
-        pyscf_mol = pyscf.gto.M()
+        pyscf_mol = pyscf.gto.M(verbose=0)
         pyscf_mol.nelectron = nelec
         pyscf_mol.incore_anyway = True  # ensure that custom integrals are used
         pyscf_mol.energy_nuc = lambda *args: c
@@ -183,3 +212,6 @@ class QuantumChemistryPySCF(QuantumChemistryBase):
         except:
             return base
         return base
+
+if __name__ == "__main__":
+    pass
