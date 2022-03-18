@@ -27,6 +27,7 @@ class OptimizeOrbitalsResult:
     mo_coeff = None # the optimized mo coefficients
     energy: float = None # the optimized energy
     iterations:int = 0
+    vqe_results:list = field(default_factory=list)
 
     def __call__(self, local_data, *args, **kwargs):
         # use as callback
@@ -137,7 +138,7 @@ def optimize_orbitals(molecule, circuit=None, vqe_solver=None, pyscf_arguments=N
     result.old_molecule=molecule
     result.mo_coeff=mc.mo_coeff
     result.energy=mc.e_tot
-    
+    result.vqe_results = wrapper.history 
     if return_mcscf:
         result.mcscf_object = mc
     
@@ -159,6 +160,7 @@ class PySCFVQEWrapper:
     one_body_integrals: numpy.ndarray = None
     two_body_integrals: numpy.ndarray = None
     history: list = field(default_factory=list)
+    previous_angles: dict = None
 
     # optional
     const_part: float = 0.0
@@ -166,6 +168,7 @@ class PySCFVQEWrapper:
     vqe_solver: typing.Callable = None
     circuit: QCircuit = None
     vqe_solver_arguments: dict = field(default_factory=dict)
+    
 
     def reorder(self, M, ordering, to):
         # convenience since we need to reorder
@@ -203,6 +206,12 @@ class PySCFVQEWrapper:
                 optimizer_arguments = self.vqe_solver_arguments["optimizer_arguments"]
             if self.silent is not None and "silent" not in optimizer_arguments:
                 optimizer_arguments["silent"] = True
+        
+        if "initial_values" not in optimizer_arguments:
+            if len(self.history)>0:
+                optimizer_arguments["initial_values"]=self.history[-1].history.angles[-1]
+            else:
+                optimizer_arguments["initial_values"]=None
 
             result = minimize(E, **optimizer_arguments)
         if hasattr(result, "circuit"):
